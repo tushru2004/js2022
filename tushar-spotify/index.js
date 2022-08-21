@@ -5,6 +5,7 @@ const { URLSearchParams } = require('url');
 const app = express()
 const randomstring = require("randomstring");
 const axios = require('axois');
+const { urlencoded } = require('express');
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const REDIRECT_URI = process.env.REDIRECT_URI;
@@ -37,5 +38,29 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/callback', (req, res) => {
-    res.send('callback');
+    const code = req.query.code || null;
+
+    axios({
+        method: 'post',
+        url: 'https://accounts.spotify.com/api/token',
+        data: querystring.stringify({
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: REDIRECT_URI,
+        }),
+        headers: {
+            'content-type': 'application/x-www-form-urlencoded',
+            Authorization: `Basic ${new Buffer.from(`${CLIENT_ID}:${CLIENT_SECRET}`).toString('base64')}`
+        }
+    })
+        .then(response => {
+            if (response.status === 200) {
+                res.send(`<pre>${JSON.stringify(response.data, null, 2)}</pre>`);
+            } else {
+                res.send(response);
+            }
+        })
+        .catch(error => {
+            res.send(error);
+        });
 });
